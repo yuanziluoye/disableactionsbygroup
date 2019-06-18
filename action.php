@@ -17,22 +17,22 @@ require_once DOKU_PLUGIN . 'action.php';
 
 class action_plugin_disableactionsbygroup extends DokuWiki_Action_Plugin
 {
-
     public function register(Doku_Event_Handler &$controller)
     {
         $controller->register_hook('AUTH_LOGIN_CHECK', 'AFTER', $this, 'handle_post_login');
+        $controller->register_hook('MENU_ITEMS_ASSEMBLY', 'AFTER', $this, 'handle_login_button');
     }
 
     public function handle_post_login(Doku_Event &$event, $param)
     {
-        global $conf;
-        global $USERINFO;
-
         // If authentication failed
-        if (!$event->result)
+        if (!$event->result) {
             // Handle settings for ALL users (non logged in)
             $this->disablebygroupids(array('ALL'));
-        return;
+            return;
+        }
+
+        global $USERINFO;
         // Handle settings for logged in users
         $this->disablebygroupids($USERINFO['grps']);
     }
@@ -48,6 +48,21 @@ class action_plugin_disableactionsbygroup extends DokuWiki_Action_Plugin
                 if ($membergroup == $group) {
                     $conf['disableactions'] = $action;
                     break 2;
+                }
+            }
+        }
+    }
+
+    /**
+     * remove login button for guest
+     */
+    public function handle_login_button(&$event, $param)
+    {
+        global $INFO;
+        if (empty($INFO["userinfo"])) {
+            foreach ($event->data['items'] as $index => $oneItem) {
+                if ($oneItem instanceof dokuwiki\Menu\Item\Login) {
+                    unset($event->data['items'][$index]);
                 }
             }
         }
